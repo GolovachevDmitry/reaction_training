@@ -22,6 +22,10 @@ document.addEventListener('DOMContentLoaded', () => {
     let isTrainingRunning = false;
     let activeTimeouts = [];
     let signalTime = null;
+    let isCountdownRunning = false;
+    let isRoundRunning = false;
+    let countdownAudio;
+
 
     startButton.addEventListener('click', () => {
         if (!isRunning) startTraining();
@@ -59,6 +63,8 @@ document.addEventListener('DOMContentLoaded', () => {
         signalDelay = 60000 / parseInt(frequency.value);
         breakDuration = parseInt(breakTime.value) * 1000;
 
+        isCountdownRunning = true;
+        isRoundRunning = false;
         isRunning = true;
         isTrainingRunning = true;
         startButton.disabled = true;
@@ -77,6 +83,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function runRound() {
+        isRoundRunning = true;
         timeRemainingDisplay.textContent = 'Round in progress';
         reactionTimeDisplay.textContent = 'Reaction Time: -- ms';
 
@@ -134,13 +141,14 @@ document.addEventListener('DOMContentLoaded', () => {
             if (counter <= 0) {
                 clearInterval(countdownInterval);
                 countdownInterval = null;
+                isCountdownRunning = false;
                 callback();
             }
         }, 1000);
         activeTimeouts.push(countdownInterval);
 
         if (seconds === 5) {
-            let countdownAudio = new Audio("audio/countdown.mp3");
+            countdownAudio = new Audio("audio/countdown.mp3");
             countdownAudio.play();
         }
     }
@@ -151,6 +159,8 @@ document.addEventListener('DOMContentLoaded', () => {
         isRunning = false;
         isPaused = false;
         isTrainingRunning = false;
+        isCountdownRunning = false;
+        isRoundRunning = false;
         startButton.disabled = false;
         pauseButton.disabled = true;
         stopButton.disabled = true;
@@ -161,6 +171,27 @@ document.addEventListener('DOMContentLoaded', () => {
         pauseButton.textContent = 'Pause';
     }
 
+    function clearTimersAndIntervals() {
+        activeTimeouts.forEach(timer => {
+            clearTimeout(timer);
+            clearInterval(timer);
+        });
+        activeTimeouts = [];
+        signalTime = null;
+        if (countdownInterval) {
+            clearInterval(countdownInterval);
+            countdownInterval = null;
+        }
+        if (signalInterval) {
+            clearInterval(signalInterval);
+            signalInterval = null;
+        }
+        if (roundTimer) {
+            clearTimeout(roundTimer);
+            roundTimer = null;
+        }
+    }
+
     function restartTraining() {
         stopTraining();
         startTraining();
@@ -168,17 +199,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function pauseTraining() {
         isPaused = true;
-        timeRemainingDisplay.textContent = 'Training Paused';
-        clearInterval(countdownInterval);
-        clearInterval(signalInterval);
-        clearAllTimeouts();
         stopAudio();
+        if (countdownAudio && !countdownAudio.paused) {
+            countdownAudio.pause();
+        }
     }
 
     function resumeTraining() {
         isPaused = false;
-        timeRemainingDisplay.textContent = 'Training Resumed';
-        runRound();
+        if (countdownAudio && countdownAudio.paused) {
+            countdownAudio.play();
+        }
     }
 
     function clearTimersAndIntervals() {
@@ -199,8 +230,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function stopAudio() {
-        audioElement.pause();
-        audioElement.currentTime = 0;
+        if (audioElement) {
+            audioElement.pause();
+            audioElement.currentTime = 0;
+        }
+        if (countdownAudio) {
+            countdownAudio.pause();
+            countdownAudio.currentTime = 0;
+        }
     }
 
     const options = [roundTime, frequency, breakTime, signalType];
