@@ -1,0 +1,157 @@
+/* Общий стиль */
+body {
+    font-family: 'Roboto', sans-serif;
+    background-color: #1e1e2f;
+    color: #ffffff;
+    margin: 0;
+    padding: 0;
+    text-align: center;
+    overflow-x: hidden;
+    /* Убирает горизонтальную прокрутку */
+}
+
+.container {
+    max-width: 800px;
+    margin: 20px auto;
+    padding: 15px;
+    background-color: #2b2b40;
+    border-radius: 12px;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
+    color: #f4f4f4;
+}
+
+header {
+    margin-bottom: 10px;
+}
+
+h1 {
+    font-size: 2rem;
+    color: #00d4ff;
+    margin-bottom: 10px;
+}
+
+/* Стили для формы настройки */
+.settings {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    /* Центрируем элементы */
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.setting-item {
+    flex: 1 1 45%;
+    max-width: 190px;
+    /* Сужаем поля выбора */
+    margin-bottom: 10px;
+}
+
+label {
+    font-weight: 500;
+    margin-bottom: 5px;
+    font-size: 0.9rem;
+}
+
+select,
+input {
+    width: 100%;
+    padding: 8px;
+    font-size: 1rem;
+    background-color: #2b2b40;
+    color: #ffffff;
+    border: 1px solid #333;
+    border-radius: 8px;
+}
+
+button {
+    padding: 10px 15px;
+    font-size: 1rem;
+    font-weight: 500;
+    background-color: #00d4ff;
+    color: #1e1e2f;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    margin: 5px;
+    width: 150px;
+    /* Унифицированная ширина кнопок */
+}
+
+button:hover {
+    background-color: #00b1cc;
+}
+
+button:disabled {
+    background-color: #777;
+    cursor: not-allowed;
+}
+
+/* Сигналы и таймер */
+#signal-area {
+    width: 260px;
+    /* Уменьшена ширина для компактности */
+    height: 260px;
+    margin: 15px auto;
+    background-color: #333;
+    position: relative;
+    border-radius: 10px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#visual-signal {
+    width: 70px;
+    height: 70px;
+    background-color: #ff4747;
+    border-radius: 50%;
+    display: none;
+}
+
+#time-remaining {
+    font-size: 1.3rem;
+    margin-top: 10px;
+    /* Поднято ближе к области */
+}
+
+/* Для кнопок в контейнере */
+.buttons {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    /* Уменьшено расстояние */
+    margin-top: 20px;
+}
+
+/* Мобильная адаптация */
+@media (max-width: 600px) {
+    .container {
+        padding: 10px;
+        margin: 10px;
+    }
+
+    h1 {
+        font-size: 1.5rem;
+    }
+
+    .setting-item {
+        flex: 1 1 100%;
+        max-width: 100%;
+    }
+
+    button {
+        width: 100%;
+        margin: 5px 0;
+    }
+
+    #signal-area {
+        width: 220px;
+        height: 220px;
+    }
+
+    #time-remaining {
+        font-size: 1.1rem;
+    }
+}
