@@ -10,6 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const visualSignal = document.getElementById('visual-signal');
     const timeRemainingDisplay = document.getElementById('time-remaining');
     const audioElement = document.getElementById('audio-signal');
+    const reactionTimeDisplay = document.getElementById('reaction-time');
 
     let signalInterval;
     let roundTimer;
@@ -19,8 +20,13 @@ document.addEventListener('DOMContentLoaded', () => {
     let timeRemaining;
     let roundLength, signalDelay, breakDuration;
     let isTrainingRunning = false;
+    let activeTimeouts = [];
+    let signalTime = null;
+    let isCountdownRunning = false;
+    let isRoundRunning = false;
+    let countdownAudio;
 
-    // Event listeners
+
     startButton.addEventListener('click', () => {
         if (!isRunning) startTraining();
     });
@@ -38,21 +44,27 @@ document.addEventListener('DOMContentLoaded', () => {
     stopButton.addEventListener('click', stopTraining);
     restartButton.addEventListener('click', restartTraining);
 
-    // Start the training session
+    document.addEventListener('click', () => {
+        if (signalTime) {
+            const reaction = Date.now() - signalTime;
+            reactionTimeDisplay.textContent = `Reaction Time: ${reaction} ms`;
+            signalTime = null;
+        }
+    });
+
     function startTraining() {
-        // Stop any previous training before starting a new one
         if (isRunning) {
             stopTraining();
         }
 
-        // Clear previous timers and intervals before starting a new round
         clearTimersAndIntervals();
 
-        // Get the selected settings
         roundLength = parseInt(roundTime.value) * 60 * 1000;
         signalDelay = 60000 / parseInt(frequency.value);
         breakDuration = parseInt(breakTime.value) * 1000;
 
+        isCountdownRunning = true;
+        isRoundRunning = false;
         isRunning = true;
         isTrainingRunning = true;
         startButton.disabled = true;
@@ -70,15 +82,16 @@ document.addEventListener('DOMContentLoaded', () => {
         pauseButton.textContent = 'Pause';
     }
 
-    // Running the round and sending signals
     function runRound() {
+        isRoundRunning = true;
         timeRemainingDisplay.textContent = 'Round in progress';
+        reactionTimeDisplay.textContent = 'Reaction Time: -- ms';
 
         signalInterval = setInterval(() => {
             if (isPaused) return;
 
             const randomDelay = Math.random() * signalDelay;
-            setTimeout(() => {
+            const timeoutId = setTimeout(() => {
                 if (signalType.value === 'visual' || signalType.value === 'both') {
                     flashVisualSignal();
                 }
@@ -86,11 +99,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     playAudio('clap.mp3');
                 }
             }, randomDelay);
+            activeTimeouts.push(timeoutId);
         }, signalDelay);
+        activeTimeouts.push(signalInterval);
 
         roundTimer = setTimeout(() => {
             if (!isPaused) {
                 clearInterval(signalInterval);
+                signalInterval = null;
                 playAudio('end.mp3');
                 timeRemainingDisplay.textContent = 'Break Time';
                 countdown(breakDuration / 1000, 'Next round in', () => {
@@ -98,97 +114,137 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             }
         }, roundLength);
+        activeTimeouts.push(roundTimer);
     }
 
-    // Flash the visual signal
     function flashVisualSignal() {
         visualSignal.style.display = 'block';
+        signalTime = Date.now();
         setTimeout(() => {
             visualSignal.style.display = 'none';
         }, 500);
     }
 
-    // Play audio signals
     function playAudio(filename) {
         audioElement.src = `audio/${filename}`;
         audioElement.play();
+        signalTime = Date.now();
     }
 
-    // Countdown timer
     function countdown(seconds, message, callback) {
         let counter = seconds;
         timeRemainingDisplay.textContent = `${message}: ${counter}`;
         countdownInterval = setInterval(() => {
+            if (isPaused) return;
             counter--;
             timeRemainingDisplay.textContent = `${message}: ${counter}`;
             if (counter <= 0) {
-                clearInterval(countdownInterval);  // Clear countdown timer when finished
+                clearInterval(countdownInterval);
+                countdownInterval = null;
+                isCountdownRunning = false;
                 callback();
             }
         }, 1000);
+        activeTimeouts.push(countdownInterval);
 
         if (seconds === 5) {
-            let countdownAudio = new Audio("audio/countdown.mp3");
+            countdownAudio = new Audio("audio/countdown.mp3");
             countdownAudio.play();
         }
     }
 
-    // Stop the training session
     function stopTraining() {
-        clearTimersAndIntervals(); // Ensure all intervals are cleared
-        stopAudio(); // Stop any playing audio immediately
+        clearTimersAndIntervals();
+        stopAudio();
         isRunning = false;
         isPaused = false;
         isTrainingRunning = false;
+        isCountdownRunning = false;
+        isRoundRunning = false;
         startButton.disabled = false;
         pauseButton.disabled = true;
         stopButton.disabled = true;
         restartButton.disabled = true;
         timeRemainingDisplay.textContent = 'Training Stopped';
+        reactionTimeDisplay.textContent = 'Reaction Time: -- ms';
 
         pauseButton.textContent = 'Pause';
     }
 
-    // Restart the training session
+    function clearTimersAndIntervals() {
+        activeTimeouts.forEach(timer => {
+            clearTimeout(timer);
+            clearInterval(timer);
+        });
+        activeTimeouts = [];
+        signalTime = null;
+        if (countdownInterval) {
+            clearInterval(countdownInterval);
+            countdownInterval = null;
+        }
+        if (signalInterval) {
+            clearInterval(signalInterval);
+            signalInterval = null;
+        }
+        if (roundTimer) {
+            clearTimeout(roundTimer);
+            roundTimer = null;
+        }
+    }
+
     function restartTraining() {
         stopTraining();
         startTraining();
     }
 
-    // Pause the training session
     function pauseTraining() {
         isPaused = true;
-        timeRemainingDisplay.textContent = 'Training Paused';
-        clearInterval(countdownInterval); // Stop the countdown timer if paused
-        stopAudio(); // Stop any playing audio immediately
+        stopAudio();
+        if (countdownAudio && !countdownAudio.paused) {
+            countdownAudio.pause();
+        }
     }
 
-    // Resume the training session
     function resumeTraining() {
         isPaused = false;
-        timeRemainingDisplay.textContent = 'Training Resumed';
-        runRound();
+        if (countdownAudio && countdownAudio.paused) {
+            countdownAudio.play();
+        }
     }
 
-    // Clear any existing timers and intervals
     function clearTimersAndIntervals() {
-        clearInterval(signalInterval); // Clear the signal interval
-        clearTimeout(roundTimer); // Clear the round timer
-        clearInterval(countdownInterval); // Clear the countdown timer if any
+        activeTimeouts.forEach(timer => {
+            clearTimeout(timer);
+            clearInterval(timer);
+        });
+        activeTimeouts = [];
+        signalTime = null;
     }
 
-    // Stop any playing audio immediately
+    function clearAllTimeouts() {
+        activeTimeouts.forEach(timeoutId => {
+            clearTimeout(timeoutId);
+        });
+        activeTimeouts = [];
+        signalTime = null;
+    }
+
     function stopAudio() {
-        audioElement.pause();
-        audioElement.currentTime = 0;
+        if (audioElement) {
+            audioElement.pause();
+            audioElement.currentTime = 0;
+        }
+        if (countdownAudio) {
+            countdownAudio.pause();
+            countdownAudio.currentTime = 0;
+        }
     }
 
-    // When user changes options, reset the Start button
     const options = [roundTime, frequency, breakTime, signalType];
     options.forEach(option => {
         option.addEventListener('change', () => {
             if (isRunning) stopTraining();
-            startButton.disabled = false; // Enable the start button after options change
+            startButton.disabled = false;
         });
     });
 });
